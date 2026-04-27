@@ -11,8 +11,37 @@ import {
 import { handleError } from "@/utils"
 import useCustomToast from "./useCustomToast"
 
+const ACCESS_TOKEN_KEY: string = "access_token"
+
+const clearSession = () => {
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+}
+
 const isLoggedIn = () => {
-  return localStorage.getItem("access_token") !== null
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY)
+  if (!token) return false
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]))
+    if (payload.exp && Date.now() / 1000 >= payload.exp) {
+      clearSession()
+      return false
+    }
+    return true
+  } catch {
+    clearSession()
+    return false
+  }
+}
+
+const isValidSession = async () => {
+  try {
+    await UsersService.readUserMe()
+    return true
+  } catch {
+    clearSession()
+    return false
+  }
 }
 
 const useAuth = () => {
@@ -42,7 +71,7 @@ const useAuth = () => {
     const response = await LoginService.loginAccessToken({
       formData: data,
     })
-    localStorage.setItem("access_token", response.access_token)
+    localStorage.setItem(ACCESS_TOKEN_KEY, response.access_token)
   }
 
   const loginMutation = useMutation({
@@ -54,7 +83,7 @@ const useAuth = () => {
   })
 
   const logout = () => {
-    localStorage.removeItem("access_token")
+    clearSession()
     navigate({ to: "/login" })
   }
 
@@ -66,5 +95,5 @@ const useAuth = () => {
   }
 }
 
-export { isLoggedIn }
+export { isLoggedIn, isValidSession }
 export default useAuth

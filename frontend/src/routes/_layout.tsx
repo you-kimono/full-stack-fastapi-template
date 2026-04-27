@@ -7,12 +7,19 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { isLoggedIn } from "@/hooks/useAuth"
+import { isLoggedIn, isValidSession } from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout")({
   component: Layout,
   beforeLoad: async () => {
-    if (!isLoggedIn()) {
+    const loggedIn = isLoggedIn()
+    if (!loggedIn) {
+      throw redirect({
+        to: "/login",
+      })
+    }
+    const validSession = await isValidSession()
+    if (!validSession) {
       throw redirect({
         to: "/login",
       })
